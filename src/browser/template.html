@@ -1,50 +1,37 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>__TITLE__</title>
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
-    />
-    <link rel="stylesheet" href="./style.css">
-    <script>
-        window.DATA = __DATA_JSON__;
-        window.FILE_PATH = __FILE_PATH_JSON__;
-        window.MAX_LEVEL = __MAX_LEVEL__;
-    </script>
-  </head>
-  <body>
-    <h1>__TITLE__</h1>
-    <div class="meta">__COUNT__ special comment(s) extracted</div>
+    <head>
+        <meta charset="utf-8" />
+        <title>__TITLE__</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+        <link rel="stylesheet" href="./style.css" />
+        <script>
+            window.DATA = __DATA_JSON__
+            window.FILE_PATH = __FILE_PATH_JSON__
+            window.MAX_LEVEL = __MAX_LEVEL__
+        </script>
+    </head>
+    <body>
+        <h1>__TITLE__</h1>
+        <div class="meta">__COUNT__ special comment(s) extracted</div>
 
-    <div class="toolbar">
-      <div class="slider-group">
-        <label for="level-slider">Min level:</label>
-        <input
-          id="level-slider"
-          type="range"
-          min="0"
-          max="__MAX_LEVEL__"
-          step="1"
-          value="0"
-        />
-        <span class="val" id="level-val">&ge; 0</span>
-      </div>
-      <button id="collapse-all">Collapse all</button>
-      <button id="expand-all">Expand all</button>
-    </div>
+        <div class="toolbar">
+            <div class="slider-group">
+                <label for="level-slider">Min level:</label>
+                <input id="level-slider" type="range" min="0" max="__MAX_LEVEL__" step="1" value="0" />
+                <span class="val" id="level-val">&ge; 0</span>
+            </div>
+            <button id="collapse-all">Collapse all</button>
+            <button id="expand-all">Expand all</button>
+        </div>
 
-    <div class="hint">
-      Click a comment to open it in VS Code. Click &#9654;/&#9660; to fold.
-      Raise the slider to hide less-important comments.
-    </div>
-    <div id="comments"></div>
-    <div class="footer" id="footer"></div>
+        <div class="hint">Click a comment to open it in VS Code. Click &#9654;/&#9660; to fold. Raise the slider to hide less-important comments.</div>
+        <div id="comments"></div>
+        <div class="footer" id="footer"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-    <script src="./script.js"></script>
-  </body>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+        <script src="./script.js"></script>
+    </body>
 </html>
