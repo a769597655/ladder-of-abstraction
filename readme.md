@@ -21,6 +21,5 @@ Effective level rule (parent derives importance from children):
 
 Usage:
 ```sh
-python abs.py input.py -o out.html
-python abs.py input.py --dump
+python src/cli/main.py
 ```
