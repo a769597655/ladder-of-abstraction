@@ -2,10 +2,8 @@ function ladder() {
     const MAX_LEVEL = window.MAX_LEVEL
     const FILE_PATH = window.FILE_PATH
     const DATA = window.DATA
-    const FOLD_KEY = "fold:" + FILE_PATH
-    const LEVEL_KEY = "level:" + FILE_PATH
 
-    // Precompute keys once
+    // Precompute stable keys once
     function assignKeys(items) {
         for (const item of items) {
             item.key = "L" + item.line + ":i" + item.indent
@@ -20,15 +18,7 @@ function ladder() {
         foldState: {},
 
         init() {
-            try {
-                this.foldState = JSON.parse(localStorage.getItem(FOLD_KEY) || "{}")
-            } catch (e) {
-                this.foldState = {}
-            }
-            const saved = parseInt(localStorage.getItem(LEVEL_KEY) || "", 10)
-            if (!Number.isNaN(saved) && saved >= 0 && saved <= MAX_LEVEL) {
-                this.minLevel = saved
-            }
+            // Nothing persisted — everything resets on load.
         },
 
         get totalCount() {
@@ -83,12 +73,7 @@ function ladder() {
         },
 
         toggle(item) {
-            const k = item.key
-            const next = !(this.foldState[k] === true)
-            this.foldState[k] = next
-            try {
-                localStorage.setItem(FOLD_KEY, JSON.stringify(this.foldState))
-            } catch (e) {}
+            this.foldState[item.key] = !(this.foldState[item.key] === true)
         },
 
         setAllCollapsed(collapsed) {
@@ -99,15 +84,6 @@ function ladder() {
                 }
             }
             walk(DATA)
-            try {
-                localStorage.setItem(FOLD_KEY, JSON.stringify(this.foldState))
-            } catch (e) {}
-        },
-
-        saveLevel() {
-            try {
-                localStorage.setItem(LEVEL_KEY, String(this.minLevel))
-            } catch (e) {}
         },
 
         caretHtml(item) {
@@ -123,23 +99,11 @@ function ladder() {
             return marked.parse(text, { breaks: false, gfm: true })
         },
 
-        // Escape hatch for arbitrary depth rendering.
-        // x-for recursion in Alpine is awkward beyond a few levels,
-        // so we hand-render deep subtrees and re-run math afterwards.
-        deepChildrenHtml(item) {
+        // Renders the subtree of `item` as HTML (depth >= 2).
+        // Alpine x-for doesn't recurse well, so we hand-build deeper levels.
+        subtreeHtml(item) {
             const html = this.childrenToHtml(item)
-            this.$nextTick(() => {
-                const root = document.querySelector(`[data-key="${item.key}"] .children`)
-                if (root && window.renderMathInElement) {
-                    window.renderMathInElement(root, {
-                        delimiters: [
-                            { left: "$$", right: "$$", display: true },
-                            { left: "$", right: "$", display: false },
-                        ],
-                        throwOnError: false,
-                    })
-                }
-            })
+            this.$nextTick(() => this.renderMathIn(item))
             return html
         },
 
@@ -152,9 +116,10 @@ function ladder() {
                 const hasKids = this.visibleChildren(child).length > 0
                 const caret = hasKids ? (collapsed ? "&#9654;<span class='badge'>" + this.visibleDescendants(child) + "</span>" : "\u25BC") : ""
                 const pill = child.level > 0 ? `<span class="levelpill">L${child.level}</span>` : ""
+                const title = child.raw_line.split("#.")[0].replace(/"/g, "&quot;")
                 out += `
                     <div class="node" data-key="${child.key}" data-eff="${child.effective_level}" ${collapsed ? 'data-collapsed="1"' : ""}>
-                        <div class="row" title="${child.raw_line.split("#.")[0].replace(/"/g, "&quot;")}(L${child.line})">
+                        <div class="row" title="${title}(L${child.line})" data-open-line="${child.line}">
                             <span class="caret ${hasKids ? "clickable" : ""}" data-toggle-key="${child.key}">${caret}</span>
                             <div class="body">
                                 <span class="lineno">L${child.line}</span>
@@ -166,6 +131,17 @@ function ladder() {
                     </div>`
             }
             return out
+        },
+
+        renderMathIn(el) {
+            if (!el || !window.renderMathInElement) return
+            window.renderMathInElement(el, {
+                delimiters: [
+                    { left: "$$", right: "$$", display: true },
+                    { left: "$", right: "$", display: false },
+                ],
+                throwOnError: false,
+            })
         },
 
         // ---- VS Code ----
@@ -185,7 +161,41 @@ function ladder() {
     }
 }
 
-// Re-render KaTeX whenever Alpine updates the tree.
+// Delegate clicks inside hand-rendered subtrees (depth >= 2).
+document.addEventListener("click", e => {
+    const caret = e.target.closest("[data-toggle-key]")
+    if (caret) {
+        e.stopPropagation()
+        const node = caret.closest(".node")
+        const children = node.querySelector(":scope > .children")
+        const key = caret.dataset.toggleKey
+        const root = document.querySelector("[x-data]")
+        const state = Alpine.$data(root)
+
+        const nowCollapsed = !node.classList.contains("collapsed")
+        node.classList.toggle("collapsed", nowCollapsed)
+        state.foldState[key] = nowCollapsed
+
+        // Update caret icon
+        if (nowCollapsed) {
+            const count = children ? children.querySelectorAll(".node").length : 0
+            caret.innerHTML = "&#9654;<span class='badge'>" + count + "</span>"
+        } else {
+            caret.textContent = "\u25BC"
+        }
+        if (children) children.style.display = nowCollapsed ? "none" : ""
+        return
+    }
+
+    const row = e.target.closest("[data-open-line]")
+    if (row) {
+        const line = parseInt(row.dataset.openLine, 10)
+        const root = document.querySelector("[x-data]")
+        Alpine.$data(root).openInVscode(line)
+    }
+})
+
+// Re-run KaTeX after Alpine renders.
 document.addEventListener("alpine:initialized", () => {
     const observer = new MutationObserver(() => {
         const root = document.getElementById("comments")
@@ -200,7 +210,5 @@ document.addEventListener("alpine:initialized", () => {
         }
     })
     const root = document.getElementById("comments")
-    if (root) {
-        observer.observe(root, { childList: true, subtree: true })
-    }
+    if (root) observer.observe(root, { childList: true, subtree: true })
 })
