@@ -16,10 +16,13 @@ function ladder() {
         MAX_LEVEL,
         minLevel: 0,
         foldState: {},
+        mathVersion: 0,
 
         init() {
             // Nothing persisted — everything resets on load.
         },
+
+        // ---- derived data ----
 
         get totalCount() {
             let n = 0
@@ -51,6 +54,8 @@ function ladder() {
             return hidden === 0 ? total + " comment(s) shown." : hidden + " of " + total + " comment(s) hidden (below min level). Lower the slider to reveal."
         },
 
+        // ---- visibility ----
+
         nodeVisible(item) {
             return item.effective_level >= this.minLevel
         },
@@ -67,6 +72,8 @@ function ladder() {
             }
             return n
         },
+
+        // ---- fold state ----
 
         isCollapsed(item) {
             return this.foldState[item.key] === true
@@ -86,6 +93,8 @@ function ladder() {
             walk(DATA)
         },
 
+        // ---- rendering ----
+
         caretHtml(item) {
             const kids = this.visibleChildren(item)
             if (kids.length === 0) return ""
@@ -99,12 +108,8 @@ function ladder() {
             return marked.parse(text, { breaks: false, gfm: true })
         },
 
-        // Renders the subtree of `item` as HTML (depth >= 2).
-        // Alpine x-for doesn't recurse well, so we hand-build deeper levels.
         subtreeHtml(item) {
-            const html = this.childrenToHtml(item)
-            this.$nextTick(() => this.renderMathIn(item))
-            return html
+            return this.childrenToHtml(item)
         },
 
         childrenToHtml(item) {
@@ -133,18 +138,32 @@ function ladder() {
             return out
         },
 
-        renderMathIn(el) {
-            if (!el || !window.renderMathInElement) return
-            window.renderMathInElement(el, {
-                delimiters: [
-                    { left: "$$", right: "$$", display: true },
-                    { left: "$", right: "$", display: false },
-                ],
-                throwOnError: false,
+        // Runs KaTeX once, after Alpine has flushed the DOM.
+        // x-effect tracks minLevel, foldState and mathVersion, so this
+        // reruns on any change and always sees the settled tree.
+        renderAllMath() {
+            // Touch reactive deps so x-effect re-runs.
+            this.minLevel
+            this.foldState
+            this.mathVersion
+
+            this.$nextTick(() => {
+                const root = document.getElementById("comments")
+                if (!root || !window.renderMathInElement) return
+
+                window.renderMathInElement(root, {
+                    delimiters: [
+                        { left: "$$", right: "$$", display: true },
+                        { left: "$", right: "$", display: false },
+                    ],
+                    throwOnError: false,
+                    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
+                })
             })
         },
 
         // ---- VS Code ----
+
         toVscodePath(p) {
             p = p.replace(/\\\\/g, "/")
             if (/^[A-Za-z]:/.test(p)) {
@@ -161,8 +180,10 @@ function ladder() {
     }
 }
 
-// Delegate clicks inside hand-rendered subtrees (depth >= 2).
+// ---- Delegated clicks for hand-rendered subtrees (depth >= 2) ----
+
 document.addEventListener("click", e => {
+    // Fold/unfold caret
     const caret = e.target.closest("[data-toggle-key]")
     if (caret) {
         e.stopPropagation()
@@ -176,7 +197,6 @@ document.addEventListener("click", e => {
         node.classList.toggle("collapsed", nowCollapsed)
         state.foldState[key] = nowCollapsed
 
-        // Update caret icon
         if (nowCollapsed) {
             const count = children ? children.querySelectorAll(".node").length : 0
             caret.innerHTML = "&#9654;<span class='badge'>" + count + "</span>"
@@ -187,28 +207,11 @@ document.addEventListener("click", e => {
         return
     }
 
+    // Open in VS Code
     const row = e.target.closest("[data-open-line]")
     if (row) {
         const line = parseInt(row.dataset.openLine, 10)
         const root = document.querySelector("[x-data]")
         Alpine.$data(root).openInVscode(line)
     }
-})
-
-// Re-run KaTeX after Alpine renders.
-document.addEventListener("alpine:initialized", () => {
-    const observer = new MutationObserver(() => {
-        const root = document.getElementById("comments")
-        if (root && window.renderMathInElement) {
-            window.renderMathInElement(root, {
-                delimiters: [
-                    { left: "$$", right: "$$", display: true },
-                    { left: "$", right: "$", display: false },
-                ],
-                throwOnError: false,
-            })
-        }
-    })
-    const root = document.getElementById("comments")
-    if (root) observer.observe(root, { childList: true, subtree: true })
 })

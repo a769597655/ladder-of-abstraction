@@ -19,7 +19,7 @@
         <div class="toolbar">
             <div class="slider-group">
                 <label for="level-slider">Min level:</label>
-                <input id="level-slider" type="range" min="0" :max="MAX_LEVEL" step="1" x-model.number="minLevel" @input="saveLevel()" />
+                <input id="level-slider" type="range" min="0" :max="MAX_LEVEL" step="1" x-model.number="minLevel" />
                 <span class="val" x-text="'≥ ' + minLevel"></span>
             </div>
             <button @click="setAllCollapsed(true)">Collapse all</button>
@@ -28,7 +28,7 @@
 
         <div class="hint">Click a comment to open it in VS Code. Click ▶/▼ to fold. Raise the slider to hide less-important comments.</div>
 
-        <div id="comments">
+        <div id="comments" x-effect="renderAllMath()">
             <template x-for="item in visibleRoots" :key="item.key">
                 <div class="node" :data-key="item.key" :data-eff="item.effective_level" :class="{ collapsed: isCollapsed(item) }">
                     <div class="row" :title="item.raw_line.split('#.')[0] + '(L' + item.line + ')'" @click="openInVscode(item.line)">
@@ -42,45 +42,7 @@
                         </div>
                     </div>
                     <template x-if="visibleChildren(item).length > 0">
-                        <div class="children">
-                            <template x-for="child in visibleChildren(item)" :key="child.key">
-                                <div class="node" :data-key="child.key" :data-eff="child.effective_level" :class="{ collapsed: isCollapsed(child) }">
-                                    <!-- recursive node -->
-                                    <div class="row" :title="child.raw_line.split('#.')[0] + '(L' + child.line + ')'" @click="openInVscode(child.line)">
-                                        <span class="caret" :class="{ clickable: visibleChildren(child).length > 0 }" @click.stop="toggle(child)" x-html="caretHtml(child)"></span>
-                                        <div class="body">
-                                            <span class="lineno" x-text="'L' + child.line"></span>
-                                            <span x-html="renderMarkdown(child.comment)"></span>
-                                            <template x-if="child.level > 0">
-                                                <span class="levelpill" x-text="'L' + child.level"></span>
-                                            </template>
-                                        </div>
-                                    </div>
-                                    <template x-if="visibleChildren(child).length > 0">
-                                        <div class="children">
-                                            <template x-for="grand in visibleChildren(child)" :key="grand.key">
-                                                <div class="node" :data-key="grand.key" :data-eff="grand.effective_level" :class="{ collapsed: isCollapsed(grand) }">
-                                                    <!-- depth 3 -->
-                                                    <div class="row" :title="grand.raw_line.split('#.')[0] + '(L' + grand.line + ')'" @click="openInVscode(grand.line)">
-                                                        <span class="caret" :class="{ clickable: visibleChildren(grand).length > 0 }" @click.stop="toggle(grand)" x-html="caretHtml(grand)"></span>
-                                                        <div class="body">
-                                                            <span class="lineno" x-text="'L' + grand.line"></span>
-                                                            <span x-html="renderMarkdown(grand.comment)"></span>
-                                                            <template x-if="grand.level > 0">
-                                                                <span class="levelpill" x-text="'L' + grand.level"></span>
-                                                            </template>
-                                                        </div>
-                                                    </div>
-                                                    <template x-if="visibleChildren(grand).length > 0">
-                                                        <div class="children" x-html="deepChildrenHtml(grand)"></div>
-                                                    </template>
-                                                </div>
-                                            </template>
-                                        </div>
-                                    </template>
-                                </div>
-                            </template>
-                        </div>
+                        <div class="children" x-html="subtreeHtml(item)"></div>
                     </template>
                 </div>
             </template>
