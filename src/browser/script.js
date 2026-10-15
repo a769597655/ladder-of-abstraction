@@ -1,28 +1,22 @@
-function ladder() {
-    const MAX_LEVEL = window.MAX_LEVEL
-    const FILE_PATH = window.FILE_PATH
-    const DATA = window.DATA
-
-    // Precompute stable keys once
-    function assignKeys(items) {
-        for (const item of items) {
-            item.key = "L" + item.line + ":i" + item.indent
-            assignKeys(item.children)
-        }
+function assignKeys(items) {
+    for (const i of items) {
+        i.key = "L" + i.line + ":i" + i.indent
+        assignKeys(i.children)
     }
-    assignKeys(DATA)
+}
+assignKeys(window.DATA)
 
+function ladder() {
     return {
-        MAX_LEVEL,
+        MAX_LEVEL: window.MAX_LEVEL,
+        FILE_PATH: window.FILE_PATH,
+        DATA: window.DATA,
         minLevel: 0,
-        foldState: {},
-        mathVersion: 0,
 
         init() {
-            // Nothing persisted — everything resets on load.
+            // Re-render math once after Alpine's initial paint.
+            this.$nextTick(() => this.renderMath(document.getElementById("comments")))
         },
-
-        // ---- derived data ----
 
         get totalCount() {
             let n = 0
@@ -32,126 +26,40 @@ function ladder() {
                     walk(i.children)
                 }
             }
-            walk(DATA)
+            walk(this.DATA)
             return n
         },
 
         get visibleRoots() {
-            return DATA.filter(i => this.nodeVisible(i))
+            return this.DATA.filter(i => i.effective_level >= this.minLevel)
         },
 
         get footerText() {
-            let hidden = 0
-            let total = 0
+            let hidden = 0,
+                total = 0
             const walk = items => {
                 for (const n of items) {
                     total++
-                    if (!this.nodeVisible(n)) hidden++
+                    if (n.effective_level < this.minLevel) hidden++
                     walk(n.children)
                 }
             }
-            walk(DATA)
+            walk(this.DATA)
             return hidden === 0 ? total + " comment(s) shown." : hidden + " of " + total + " comment(s) hidden (below min level). Lower the slider to reveal."
         },
 
-        // ---- visibility ----
-
-        nodeVisible(item) {
+        visible(item) {
             return item.effective_level >= this.minLevel
         },
 
-        visibleChildren(item) {
-            return item.children.filter(c => this.nodeVisible(c))
-        },
-
-        visibleDescendants(item) {
-            let n = 0
-            for (const c of item.children) {
-                if (!this.nodeVisible(c)) continue
-                n += 1 + this.visibleDescendants(c)
-            }
-            return n
-        },
-
-        // ---- fold state ----
-
-        isCollapsed(item) {
-            return this.foldState[item.key] === true
-        },
-
-        toggle(item) {
-            this.foldState[item.key] = !(this.foldState[item.key] === true)
-        },
-
         setAllCollapsed(collapsed) {
-            const walk = items => {
-                for (const i of items) {
-                    if (i.children.length > 0) this.foldState[i.key] = collapsed
-                    walk(i.children)
-                }
-            }
-            walk(DATA)
+            // Every node component listens to this flag.
+            this.$dispatch("set-collapsed", { collapsed })
         },
 
-        // ---- rendering ----
-
-        caretHtml(item) {
-            const kids = this.visibleChildren(item)
-            if (kids.length === 0) return ""
-            if (this.isCollapsed(item)) {
-                return "&#9654;<span class='badge'>" + this.visibleDescendants(item) + "</span>"
-            }
-            return "\u25BC"
-        },
-
-        renderMarkdown(text) {
-            return marked.parse(text, { breaks: false, gfm: true })
-        },
-
-        subtreeHtml(item) {
-            return this.childrenToHtml(item)
-        },
-
-        childrenToHtml(item) {
-            const kids = this.visibleChildren(item)
-            if (kids.length === 0) return ""
-            let out = ""
-            for (const child of kids) {
-                const collapsed = this.isCollapsed(child)
-                const hasKids = this.visibleChildren(child).length > 0
-                const caret = hasKids ? (collapsed ? "&#9654;<span class='badge'>" + this.visibleDescendants(child) + "</span>" : "\u25BC") : ""
-                const pill = child.level > 0 ? `<span class="levelpill">L${child.level}</span>` : ""
-                const title = child.raw_line.split("#.")[0].replace(/"/g, "&quot;")
-                out += `
-                    <div class="node" data-key="${child.key}" data-eff="${child.effective_level}" ${collapsed ? 'data-collapsed="1"' : ""}>
-                        <div class="row" title="${title}(L${child.line})" data-open-line="${child.line}">
-                            <span class="caret ${hasKids ? "clickable" : ""}" data-toggle-key="${child.key}">${caret}</span>
-                            <div class="body">
-                                <span class="lineno">L${child.line}</span>
-                                <span>${this.renderMarkdown(child.comment)}</span>
-                                ${pill}
-                            </div>
-                        </div>
-                        ${hasKids ? `<div class="children" ${collapsed ? 'style="display:none"' : ""}>${this.childrenToHtml(child)}</div>` : ""}
-                    </div>`
-            }
-            return out
-        },
-
-        // Runs KaTeX once, after Alpine has flushed the DOM.
-        // x-effect tracks minLevel, foldState and mathVersion, so this
-        // reruns on any change and always sees the settled tree.
-        renderAllMath() {
-            // Touch reactive deps so x-effect re-runs.
-            this.minLevel
-            this.foldState
-            this.mathVersion
-
-            this.$nextTick(() => {
-                const root = document.getElementById("comments")
-                if (!root || !window.renderMathInElement) return
-
-                window.renderMathInElement(root, {
+        renderMath(el) {
+            if (el && window.renderMathInElement) {
+                window.renderMathInElement(el, {
                     delimiters: [
                         { left: "$$", right: "$$", display: true },
                         { left: "$", right: "$", display: false },
@@ -159,59 +67,54 @@ function ladder() {
                     throwOnError: false,
                     ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
                 })
-            })
-        },
-
-        // ---- VS Code ----
-
-        toVscodePath(p) {
-            p = p.replace(/\\\\/g, "/")
-            if (/^[A-Za-z]:/.test(p)) {
-                p = "/" + p[0].toLowerCase() + p.slice(1)
             }
-            return p
         },
 
-        openInVscode(line) {
-            const url = "vscode://file" + this.toVscodePath(FILE_PATH) + ":" + line
-            console.log("opening:", url)
-            window.location.href = url
+        open(line) {
+            let p = window.FILE_PATH.replace(/\\\\/g, "/")
+            if (/^[A-Za-z]:/.test(p)) p = "/" + p[0].toLowerCase() + p.slice(1)
+            window.location.href = "vscode://file" + p + ":" + line
         },
     }
 }
 
-// ---- Delegated clicks for hand-rendered subtrees (depth >= 2) ----
+function node(item, root) {
+    return {
+        item,
+        root,
+        collapsed: false,
+        get kids() {
+            return item.children.filter(c => c.effective_level >= root.minLevel)
+        },
+        get md() {
+            return marked.parse(item.comment, { breaks: false, gfm: true })
+        },
+        get caretHtml() {
+            if (!this.kids.length) return ""
+            if (this.collapsed) return "&#9654;<span class='badge'>" + this.countDescendants() + "</span>"
+            return "\u25BC"
+        },
+        countDescendants() {
+            let n = 0
+            const walk = items => {
+                for (const c of items) {
+                    if (c.effective_level < root.minLevel) continue
+                    n++
+                    walk(c.children)
+                }
+            }
+            walk(item.children)
+            return n
+        },
+        init() {
+            this.$el.innerHTML = document.getElementById("node-template").innerHTML
+            Alpine.initTree(this.$el)
+            this.$nextTick(() => root.renderMath(this.$el))
 
-document.addEventListener("click", e => {
-    // Fold/unfold caret
-    const caret = e.target.closest("[data-toggle-key]")
-    if (caret) {
-        e.stopPropagation()
-        const node = caret.closest(".node")
-        const children = node.querySelector(":scope > .children")
-        const key = caret.dataset.toggleKey
-        const root = document.querySelector("[x-data]")
-        const state = Alpine.$data(root)
-
-        const nowCollapsed = !node.classList.contains("collapsed")
-        node.classList.toggle("collapsed", nowCollapsed)
-        state.foldState[key] = nowCollapsed
-
-        if (nowCollapsed) {
-            const count = children ? children.querySelectorAll(".node").length : 0
-            caret.innerHTML = "&#9654;<span class='badge'>" + count + "</span>"
-        } else {
-            caret.textContent = "\u25BC"
-        }
-        if (children) children.style.display = nowCollapsed ? "none" : ""
-        return
+            // Global collapse-all listener
+            this.$root.addEventListener("set-collapsed", e => {
+                if (this.kids.length) this.collapsed = e.detail.collapsed
+            })
+        },
     }
-
-    // Open in VS Code
-    const row = e.target.closest("[data-open-line]")
-    if (row) {
-        const line = parseInt(row.dataset.openLine, 10)
-        const root = document.querySelector("[x-data]")
-        Alpine.$data(root).openInVscode(line)
-    }
-})
+}

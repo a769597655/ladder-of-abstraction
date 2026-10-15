@@ -28,23 +28,9 @@
 
         <div class="hint">Click a comment to open it in VS Code. Click ▶/▼ to fold. Raise the slider to hide less-important comments.</div>
 
-        <div id="comments" x-effect="renderAllMath()">
+        <div id="comments">
             <template x-for="item in visibleRoots" :key="item.key">
-                <div class="node" :data-key="item.key" :data-eff="item.effective_level" :class="{ collapsed: isCollapsed(item) }">
-                    <div class="row" :title="item.raw_line.split('#.')[0] + '(L' + item.line + ')'" @click="openInVscode(item.line)">
-                        <span class="caret" :class="{ clickable: visibleChildren(item).length > 0 }" @click.stop="toggle(item)" x-html="caretHtml(item)"></span>
-                        <div class="body">
-                            <span class="lineno" x-text="'L' + item.line"></span>
-                            <span x-html="renderMarkdown(item.comment)"></span>
-                            <template x-if="item.level > 0">
-                                <span class="levelpill" x-text="'L' + item.level"></span>
-                            </template>
-                        </div>
-                    </div>
-                    <template x-if="visibleChildren(item).length > 0">
-                        <div class="children" x-html="subtreeHtml(item)"></div>
-                    </template>
-                </div>
+                <div x-data="node(item, $data)"></div>
             </template>
         </div>
 
@@ -54,5 +40,28 @@
         <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
         <script src="./script.js"></script>
+
+        <!-- Recursive node template -->
+        <template id="node-template">
+            <div class="node" :class="{ collapsed }">
+                <div class="row" :title="item.raw_line.split('#.')[0] + '(L' + item.line + ')'" @click="open(item.line)">
+                    <span class="caret" :class="{ clickable: kids.length }" @click.stop="collapsed = !collapsed" x-html="caretHtml"></span>
+                    <div class="body">
+                        <span class="lineno" x-text="'L' + item.line"></span>
+                        <span x-html="md"></span>
+                        <template x-if="item.level > 0">
+                            <span class="levelpill" x-text="'L' + item.level"></span>
+                        </template>
+                    </div>
+                </div>
+                <template x-if="kids.length">
+                    <div class="children">
+                        <template x-for="child in kids" :key="child.key">
+                            <div x-data="node(child, root)"></div>
+                        </template>
+                    </div>
+                </template>
+            </div>
+        </template>
     </body>
 </html>
