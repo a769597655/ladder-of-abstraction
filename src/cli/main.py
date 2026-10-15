@@ -7,14 +7,10 @@ import sys
 from pathlib import Path
 
 
-def read_file_as_utf8(file_path: str) -> str:
-    return Path(file_path).read_text(encoding="utf-8")
-
 current_file = Path(__file__).resolve()
 PATT = r"^(?P<indent>[ \t]*)(?P<code>.*?)#\.\s*(?P<level>\d+)?\s?(?P<comment>.*)$"
 COMMENT_RE = re.compile(PATT)
-HTML_TEMPLATE = read_file_as_utf8(current_file.parent.parent / "browser" / 'template.html')
-
+HTML_TEMPLATE = Path(current_file.parent.parent / "browser" / 'template.html').read_text(encoding="utf-8")
 
 
 def extract_comments(source: str) -> list[dict]:
@@ -84,8 +80,7 @@ def dump_tree(nodes: list[dict], depth: int = 0) -> None:
         )
         dump_tree(n["children"], depth + 1)
 
-def render_html(items: list[dict], title: str, file_path: str,
-                max_lvl: int, count: int) -> str:
+def render_html(items: list[dict], title: str, file_path: str, max_lvl: int, count: int) -> str:
     return (
         HTML_TEMPLATE
         .replace("__TITLE__", html.escape(title))
@@ -125,7 +120,6 @@ def main() -> int:
         (args.output / "index.html").write_text(out, encoding="utf-8")
 
         for p in (current_file.parent.parent / "browser").iterdir():
-            print(p)
             if p.is_file():
                 shutil.copy(p, args.output)
 
