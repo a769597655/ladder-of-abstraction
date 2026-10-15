@@ -1,14 +1,24 @@
+const q = sel => document.querySelector(sel)
+const qa = sel => [...document.querySelectorAll(sel)]
+
 const DATA = window.DATA
 const FILE_PATH = window.FILE_PATH
 const MAX_LEVEL = window.MAX_LEVEL
+
+const FOLD_KEY = "fold:" + FILE_PATH
+const LEVEL_KEY = "level:" + FILE_PATH
+
+const root = q("#comments")
+const slider = q("#level-slider")
+const valLabel = q("#level-val")
+
+let foldState = {}
 
 function renderMath(container) {
     renderMathInElement(container, {
         delimiters: [
             { left: "$$", right: "$$", display: true },
             { left: "$", right: "$", display: false },
-            { left: "\\(", right: "\\)", display: false },
-            { left: "\\[", right: "\\]", display: true },
         ],
         throwOnError: false,
     })
@@ -28,27 +38,10 @@ function openInVscode(line) {
     window.location.href = url
 }
 
-const FOLD_KEY = "fold:" + FILE_PATH
-const LEVEL_KEY = "level:" + FILE_PATH
-
-let foldState = {}
-try {
-    foldState = JSON.parse(localStorage.getItem(FOLD_KEY) || "{}")
-} catch (e) {
-    foldState = {}
-}
-
 function saveFoldState() {
     try {
         localStorage.setItem(FOLD_KEY, JSON.stringify(foldState))
     } catch (e) {}
-}
-
-// Slider = MINIMUM level to show. 0 means "show everything".
-let currentMinLevel = 0
-const savedMin = parseInt(localStorage.getItem(LEVEL_KEY) || "", 10)
-if (!Number.isNaN(savedMin) && savedMin >= 0 && savedMin <= MAX_LEVEL) {
-    currentMinLevel = savedMin
 }
 
 function saveLevel() {
@@ -78,8 +71,6 @@ function visibleDescendants(item) {
     }
     return n
 }
-
-const root = document.getElementById("comments")
 
 function renderNode(item) {
     const key = nodeKey(item)
@@ -180,20 +171,33 @@ function updateFooter() {
         }
     })(DATA)
 
-    const footer = document.getElementById("footer")
+    const footer = q("#footer")
     if (hidden === 0) {
         footer.textContent = total + " comment(s) shown."
     } else {
-        footer.textContent =
-            hidden +
-            " of " +
-            total +
-            " comment(s) hidden (below min level). Lower the slider to reveal."
+        footer.textContent = hidden + " of " + total + " comment(s) hidden (below min level). Lower the slider to reveal."
     }
 }
 
-const slider = document.getElementById("level-slider")
-const valLabel = document.getElementById("level-val")
+function setAllCollapsed(collapsed) {
+    qa("#comments .node[data-key]").forEach(node => {
+        if (!node.querySelector(":scope > .children")) return
+        node.classList.toggle("collapsed", collapsed)
+
+        const caret = node.querySelector(":scope > .row > .caret")
+        if (collapsed) {
+            const kidCount = node.querySelectorAll(":scope > .children .node").length
+            caret.innerHTML = "&#9654;<span class='badge'>" + kidCount + "</span>"
+        } else {
+            caret.textContent = "\u25BC"
+        }
+
+        foldState[node.dataset.key] = collapsed
+    })
+    saveFoldState()
+}
+
+// -----------------------
 
 slider.value = String(currentMinLevel)
 valLabel.textContent = "\u2265 " + currentMinLevel
@@ -205,32 +209,20 @@ slider.addEventListener("input", () => {
     renderAll()
 })
 
-function setAllCollapsed(collapsed) {
-    document.querySelectorAll("#comments .node[data-key]").forEach(node => {
-        if (!node.querySelector(":scope > .children")) return
-        node.classList.toggle("collapsed", collapsed)
-
-        const caret = node.querySelector(":scope > .row > .caret")
-        if (collapsed) {
-            const kidCount = node.querySelectorAll(
-                ":scope > .children .node",
-            ).length
-            caret.innerHTML =
-                "&#9654;<span class='badge'>" + kidCount + "</span>"
-        } else {
-            caret.textContent = "\u25BC"
-        }
-
-        foldState[node.dataset.key] = collapsed
-    })
-    saveFoldState()
+try {
+    foldState = JSON.parse(localStorage.getItem(FOLD_KEY) || "{}")
+} catch (e) {
+    foldState = {}
 }
 
-document
-    .getElementById("collapse-all")
-    .addEventListener("click", () => setAllCollapsed(true))
-document
-    .getElementById("expand-all")
-    .addEventListener("click", () => setAllCollapsed(false))
+// Slider = MINIMUM level to show. 0 means "show everything".
+let currentMinLevel = 0
+const savedMin = parseInt(localStorage.getItem(LEVEL_KEY) || "", 10)
+if (!Number.isNaN(savedMin) && savedMin >= 0 && savedMin <= MAX_LEVEL) {
+    currentMinLevel = savedMin
+}
+
+q("#collapse-all").addEventListener("click", () => setAllCollapsed(true))
+q("#expand-all").addEventListener("click", () => setAllCollapsed(false))
 
 renderAll()
