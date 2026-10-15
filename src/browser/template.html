@@ -10,24 +10,83 @@
             window.FILE_PATH = __FILE_PATH_JSON__
             window.MAX_LEVEL = __MAX_LEVEL__
         </script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     </head>
-    <body>
+    <body x-data="ladder()" x-init="init()">
         <h1>__TITLE__</h1>
-        <div class="meta">__COUNT__ special comment(s) extracted</div>
+        <div class="meta"><span x-text="totalCount"></span> special comment(s) extracted</div>
 
         <div class="toolbar">
             <div class="slider-group">
                 <label for="level-slider">Min level:</label>
-                <input id="level-slider" type="range" min="0" max="__MAX_LEVEL__" step="1" value="0" />
-                <span class="val" id="level-val">&ge; 0</span>
+                <input id="level-slider" type="range" min="0" :max="MAX_LEVEL" step="1" x-model.number="minLevel" @input="saveLevel()" />
+                <span class="val" x-text="'≥ ' + minLevel"></span>
             </div>
-            <button id="collapse-all">Collapse all</button>
-            <button id="expand-all">Expand all</button>
+            <button @click="setAllCollapsed(true)">Collapse all</button>
+            <button @click="setAllCollapsed(false)">Expand all</button>
         </div>
 
-        <div class="hint">Click a comment to open it in VS Code. Click &#9654;/&#9660; to fold. Raise the slider to hide less-important comments.</div>
-        <div id="comments"></div>
-        <div class="footer" id="footer"></div>
+        <div class="hint">Click a comment to open it in VS Code. Click ▶/▼ to fold. Raise the slider to hide less-important comments.</div>
+
+        <div id="comments">
+            <template x-for="item in visibleRoots" :key="item.key">
+                <div class="node" :data-key="item.key" :data-eff="item.effective_level" :class="{ collapsed: isCollapsed(item) }">
+                    <div class="row" :title="item.raw_line.split('#.')[0] + '(L' + item.line + ')'" @click="openInVscode(item.line)">
+                        <span class="caret" :class="{ clickable: visibleChildren(item).length > 0 }" @click.stop="toggle(item)" x-html="caretHtml(item)"></span>
+                        <div class="body">
+                            <span class="lineno" x-text="'L' + item.line"></span>
+                            <span x-html="renderMarkdown(item.comment)"></span>
+                            <template x-if="item.level > 0">
+                                <span class="levelpill" x-text="'L' + item.level"></span>
+                            </template>
+                        </div>
+                    </div>
+                    <template x-if="visibleChildren(item).length > 0">
+                        <div class="children">
+                            <template x-for="child in visibleChildren(item)" :key="child.key">
+                                <div class="node" :data-key="child.key" :data-eff="child.effective_level" :class="{ collapsed: isCollapsed(child) }">
+                                    <!-- recursive node -->
+                                    <div class="row" :title="child.raw_line.split('#.')[0] + '(L' + child.line + ')'" @click="openInVscode(child.line)">
+                                        <span class="caret" :class="{ clickable: visibleChildren(child).length > 0 }" @click.stop="toggle(child)" x-html="caretHtml(child)"></span>
+                                        <div class="body">
+                                            <span class="lineno" x-text="'L' + child.line"></span>
+                                            <span x-html="renderMarkdown(child.comment)"></span>
+                                            <template x-if="child.level > 0">
+                                                <span class="levelpill" x-text="'L' + child.level"></span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                    <template x-if="visibleChildren(child).length > 0">
+                                        <div class="children">
+                                            <template x-for="grand in visibleChildren(child)" :key="grand.key">
+                                                <div class="node" :data-key="grand.key" :data-eff="grand.effective_level" :class="{ collapsed: isCollapsed(grand) }">
+                                                    <!-- depth 3 -->
+                                                    <div class="row" :title="grand.raw_line.split('#.')[0] + '(L' + grand.line + ')'" @click="openInVscode(grand.line)">
+                                                        <span class="caret" :class="{ clickable: visibleChildren(grand).length > 0 }" @click.stop="toggle(grand)" x-html="caretHtml(grand)"></span>
+                                                        <div class="body">
+                                                            <span class="lineno" x-text="'L' + grand.line"></span>
+                                                            <span x-html="renderMarkdown(grand.comment)"></span>
+                                                            <template x-if="grand.level > 0">
+                                                                <span class="levelpill" x-text="'L' + grand.level"></span>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                    <template x-if="visibleChildren(grand).length > 0">
+                                                        <div class="children" x-html="deepChildrenHtml(grand)"></div>
+                                                    </template>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+        </div>
+
+        <div class="footer" x-text="footerText"></div>
 
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
