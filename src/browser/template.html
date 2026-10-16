@@ -47,11 +47,11 @@
                 <div class="row" :title="item.raw_line.split('#.')[0] + '(L' + item.line + ')'" @click="open(item.line)">
                     <span class="caret" :class="{ clickable: kids.length }" @click.stop="collapsed = !collapsed" x-html="caretHtml"></span>
                     <div class="body">
-                        <span class="lineno" x-text="'L' + item.line"></span>
-                        <span x-html="md"></span>
-                        <template x-if="item.level > 0">
+                        <!-- <span class="lineno" x-text="'L' + item.line"></span> -->
+                        <span x-html="md" :title="'L' + item.line"></span>
+                        <!-- <template x-if="item.level > 0">
                             <span class="levelpill" x-text="'L' + item.level"></span>
-                        </template>
+                        </template> -->
                     </div>
                 </div>
                 <template x-if="kids.length">
