@@ -4,6 +4,7 @@ import html
 import json
 import re
 import sys
+import os
 from pathlib import Path
 
 
@@ -111,10 +112,10 @@ def main() -> int:
             max_lvl = max_level(tree)
             title = args.title or args.input.name
             abs_path = str(args.input.resolve())
-
             out = render_html(tree, title, abs_path, max_lvl, len(flat))
-            (args.output / "index.html").write_text(out, encoding="utf-8")
 
+            os.makedirs(args.output, exist_ok=True)
+            (args.output / "index.html").write_text(out, encoding="utf-8")
             for p in (current_file.parent.parent / "browser").iterdir():
                 if p.is_file():
                     shutil.copy(p, args.output)
