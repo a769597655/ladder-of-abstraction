@@ -106,20 +106,21 @@ def main() -> int:
         if args.dump:
             print(f"# {len(flat)} comment(s)")
             dump_tree(tree)
-            return 0
 
-        max_lvl = max_level(tree)
-        title = args.title or args.input.name
-        abs_path = str(args.input.resolve())
+        else:
+            max_lvl = max_level(tree)
+            title = args.title or args.input.name
+            abs_path = str(args.input.resolve())
 
-        out = render_html(tree, title, abs_path, max_lvl, len(flat))
-        (args.output / "index.html").write_text(out, encoding="utf-8")
+            out = render_html(tree, title, abs_path, max_lvl, len(flat))
+            (args.output / "index.html").write_text(out, encoding="utf-8")
 
-        for p in (current_file.parent.parent / "browser").iterdir():
-            if p.is_file():
-                shutil.copy(p, args.output)
+            for p in (current_file.parent.parent / "browser").iterdir():
+                if p.is_file():
+                    shutil.copy(p, args.output)
 
-        print(f"wrote {len(flat)} comment(s) -> {args.output}")
+            print(f"wrote {len(flat)} comment(s) -> {args.output}")
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
