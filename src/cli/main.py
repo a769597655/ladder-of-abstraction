@@ -17,22 +17,18 @@ def extract_comments(source: str) -> list[dict]:
     """Iterate lines and collect special `#.` comments."""
     items: list[dict] = []
     for lineno, line in enumerate(source.splitlines(), start=1):
-        m = COMMENT_RE.match(line)
-        if not m:
-            continue
-        indent_raw = m.group("indent")
-        indent_width = len(indent_raw.replace("\t", "    "))
-        level_raw = m.group("level")
-        level = int(level_raw) if level_raw is not None else 0
-        items.append(
-            {
-                "line": lineno,
-                "indent": indent_width,
-                "level": level,
-                "raw_line": line.rstrip("\n"),
-                "comment": m.group("comment").strip(),
-            }
-        )
+        if m := COMMENT_RE.match(line):
+            indent_raw = m.group("indent")
+            indent_width = len(indent_raw.replace("\t", "    "))
+            level_raw = m.group("level")
+            level = int(level_raw) if level_raw is not None else 0
+            items.append({
+                    "line": lineno,
+                    "indent": indent_width,
+                    "level": level,
+                    "raw_line": line.rstrip("\n"),
+                    "comment": m.group("comment").strip(),
+                })
     return items
 
 def build_tree(items: list[dict]) -> list[dict]:
