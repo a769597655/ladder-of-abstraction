@@ -6,7 +6,7 @@ function assignKeys(items) {
 }
 assignKeys(window.DATA)
 
-function ladder() {
+function app() {
     return {
         MAX_LEVEL: window.MAX_LEVEL,
         FILE_PATH: window.FILE_PATH,

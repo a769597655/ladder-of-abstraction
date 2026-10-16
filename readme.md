@@ -22,5 +22,5 @@ Effective level rule (parent derives importance from children):
 # Usage
 ### Dev
 ```sh
-watchexec -e py -r "python3-64.exe .\src\cli\main.py .\test\face.py"
+watchexec -i ./src -e py,html,js,css -r "python3-64.exe .\src\cli\main.py .\test\face.py"
 ```
