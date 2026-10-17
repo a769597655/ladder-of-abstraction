@@ -8,14 +8,14 @@ from insightface.app import FaceAnalysis
 
 
 model_path = hf_hub_download(repo_id="AdamCodd/YOLOv11n-face-detection", filename="model.pt") # download
-yolo = YOLO(model_path) #. load `YOLO v11` model _as face detector_
+yolo = YOLO(model_path) #. load `YOLO v11` model (_as face detector_)
 
-recognizer = FaceAnalysis(name='buffalo_l') #. load `buffalo_l` model _as face recognizer_
+recognizer = FaceAnalysis(name='buffalo_l') #. load `buffalo_l` model (_as face recognizer_)
 recognizer.prepare(ctx_id=0, det_size=(640, 640)) # config
 
 def recognize(img_path = "screen.png"): #. $\lambda.$ recognize
     img = cv2.imread(img_path) #.1 load input image 🖼️
-    results = yolo.predict(img_path, save=False) #.1 detect bound boxes ☐ of all faces 👨🏻 in _the image_ 🖼️ with `YOLO` model
+    results = yolo.predict(img_path, save=False) #.1 detect 🔎 bound boxes ☐ of all faces 👨🏻 in _the image_ 🖼️ (with `YOLO` model)
     r = results[0]
 
     for box in r.boxes: #. iterate ♻ _bound boxes_ ☐ of faces 👨🏻
