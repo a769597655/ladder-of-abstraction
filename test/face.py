@@ -26,8 +26,8 @@ def recognize(img_path = "screen.png"): #. $\lambda.$ recognize
         # InsightFace can process this crop directly (bbox alignment mode) It will resize to 112x112 internally
         faces = recognizer.get(face_crop) #. recognize faces 👨🏻 in the _crop_ ☐🖼️
 
-        if len(faces) == 0: #. ignore if you didn't find any faces 👨🏻
+        if len(faces) == 0:
             print(f"YOLO found a face (conf={conf:.2f}) but InsightFace couldn't process the crop")
-        else: #.1 if you found any 👨🏻
+        else:
             face = faces[0] #. $F_0$ $\gets$ first recognized face
             embedding = face.normed_embedding  # 512-dim L2-normalized vector #.1 `embedding` $\gets$ embedding of the $F_0$
