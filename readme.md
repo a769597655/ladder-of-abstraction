@@ -20,7 +20,14 @@ Effective level rule (parent derives importance from children):
 > A parent is only hidden once its ENTIRE subtree is below the slider. A parent stays visible as long as any visible descendant remains. So a level-0 parent with a level-2 child becomes effectively level 2, and hides together with that child when the slider hits 2.
 
 # Usage
-### Dev
+## Dev
+
 ```sh
 watchexec -i ./src -e py,html,js,css -r "python3-64.exe .\src\cli\main.py .\test\face.py"
+```
+
+## Serve
+```sh
+npm i -g http-server
+http-server -c-1 ./dist
 ```
