@@ -4,6 +4,7 @@ import html
 import json
 import re
 import sys
+import os
 from pathlib import Path
 
 
@@ -17,22 +18,18 @@ def extract_comments(source: str) -> list[dict]:
     """Iterate lines and collect special `#.` comments."""
     items: list[dict] = []
     for lineno, line in enumerate(source.splitlines(), start=1):
-        m = COMMENT_RE.match(line)
-        if not m:
-            continue
-        indent_raw = m.group("indent")
-        indent_width = len(indent_raw.replace("\t", "    "))
-        level_raw = m.group("level")
-        level = int(level_raw) if level_raw is not None else 0
-        items.append(
-            {
-                "line": lineno,
-                "indent": indent_width,
-                "level": level,
-                "raw_line": line.rstrip("\n"),
-                "comment": m.group("comment").strip(),
-            }
-        )
+        if m := COMMENT_RE.match(line):
+            indent_raw = m.group("indent")
+            indent_width = len(indent_raw.replace("\t", "    "))
+            level_raw = m.group("level")
+            level = int(level_raw) if level_raw is not None else 0
+            items.append({
+                    "line": lineno,
+                    "indent": indent_width,
+                    "level": level,
+                    "raw_line": line.rstrip("\n"),
+                    "comment": m.group("comment").strip(),
+                })
     return items
 
 def build_tree(items: list[dict]) -> list[dict]:
@@ -110,20 +107,21 @@ def main() -> int:
         if args.dump:
             print(f"# {len(flat)} comment(s)")
             dump_tree(tree)
-            return 0
 
-        max_lvl = max_level(tree)
-        title = args.title or args.input.name
-        abs_path = str(args.input.resolve())
+        else:
+            max_lvl = max_level(tree)
+            title = args.title or args.input.name
+            abs_path = str(args.input.resolve())
+            out = render_html(tree, title, abs_path, max_lvl, len(flat))
 
-        out = render_html(tree, title, abs_path, max_lvl, len(flat))
-        (args.output / "index.html").write_text(out, encoding="utf-8")
+            os.makedirs(args.output, exist_ok=True)
+            (args.output / "index.html").write_text(out, encoding="utf-8")
+            for p in (current_file.parent.parent / "browser").iterdir():
+                if p.is_file():
+                    shutil.copy(p, args.output)
 
-        for p in (current_file.parent.parent / "browser").iterdir():
-            if p.is_file():
-                shutil.copy(p, args.output)
+            print(f"wrote {len(flat)} comment(s) -> {args.output}")
 
-        print(f"wrote {len(flat)} comment(s) -> {args.output}")
 
 if __name__ == "__main__":
     raise SystemExit(main())

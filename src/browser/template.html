@@ -12,7 +12,7 @@
         </script>
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     </head>
-    <body x-data="ladder()" x-init="init()">
+    <body x-data="app()" x-init="init()">
         <h1>__TITLE__</h1>
         <div class="meta"><span x-text="totalCount"></span> special comment(s) extracted</div>
 
@@ -47,11 +47,11 @@
                 <div class="row" :title="item.raw_line.split('#.')[0] + '(L' + item.line + ')'" @click="open(item.line)">
                     <span class="caret" :class="{ clickable: kids.length }" @click.stop="collapsed = !collapsed" x-html="caretHtml"></span>
                     <div class="body">
-                        <span class="lineno" x-text="'L' + item.line"></span>
-                        <span x-html="md"></span>
-                        <template x-if="item.level > 0">
+                        <!-- <span class="lineno" x-text="'L' + item.line"></span> -->
+                        <span x-html="md" :title="'L' + item.line"></span>
+                        <!-- <template x-if="item.level > 0">
                             <span class="levelpill" x-text="'L' + item.level"></span>
-                        </template>
+                        </template> -->
                     </div>
                 </div>
                 <template x-if="kids.length">
