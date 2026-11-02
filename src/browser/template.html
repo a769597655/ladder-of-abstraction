@@ -3,14 +3,24 @@
     <head>
         <meta charset="utf-8" />
         <title>__TITLE__</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
-        <link rel="stylesheet" href="./style.css" />
+        <!-- <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script> -->
+        <!-- <script defer src="./alpine.js"></script>  -->
+        <!-- <script src="./script.js"></script> -->
+        <!-- <link rel="stylesheet" href="./style.css" /> -->
+        <style>
+            __STYLES__
+        </style>
         <script>
             window.DATA = __DATA_JSON__
             window.FILE_PATH = __FILE_PATH_JSON__
             window.MAX_LEVEL = __MAX_LEVEL__
         </script>
-        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <script>
+            __LIB_ALPINE__
+        </script> 
+        <script>
+            __SCRIPT__
+        </script> 
     </head>
     <body x-data="app()" x-init="init()">
         <h1>__TITLE__</h1>
@@ -36,11 +46,6 @@
 
         <div class="footer" x-text="footerText"></div>
 
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-        <script src="./script.js"></script>
-
         <!-- Recursive node template -->
         <template id="node-template">
             <div class="node" :class="{ collapsed }">
@@ -48,7 +53,7 @@
                     <span class="caret" :class="{ clickable: kids.length }" @click.stop="collapsed = !collapsed" x-html="caretHtml"></span>
                     <div class="body">
                         <!-- <span class="lineno" x-text="'L' + item.line"></span> -->
-                        <span x-html="md" :title="'L' + item.line"></span>
+                        <span x-html="item.html"></span>
                         <!-- <template x-if="item.level > 0">
                             <span class="levelpill" x-text="'L' + item.level"></span>
                         </template> -->
@@ -64,4 +69,5 @@
             </div>
         </template>
     </body>
+
 </html>

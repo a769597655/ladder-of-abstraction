@@ -27,7 +27,9 @@ watchexec -i ./src -e py,html,js,css -r "python3-64.exe .\src\cli\main.py .\test
 ```
 
 ## Serve
+and then open the `.html` file 
+or 
 ```sh
-npm i -g http-server
-http-server -c-1 ./dist
+npm i http-server
+http-server -c-1 ./path/to/dir/
 ```

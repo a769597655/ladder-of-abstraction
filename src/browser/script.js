@@ -6,6 +6,7 @@ function assignKeys(items) {
 }
 assignKeys(window.DATA)
 
+
 function app() {
     return {
         MAX_LEVEL: window.MAX_LEVEL,
@@ -14,8 +15,6 @@ function app() {
         minLevel: 0,
 
         init() {
-            // Re-render math once after Alpine's initial paint.
-            this.$nextTick(() => this.renderMath(document.getElementById("comments")))
         },
 
         get totalCount() {
@@ -57,19 +56,6 @@ function app() {
             this.$dispatch("set-collapsed", { collapsed })
         },
 
-        renderMath(el) {
-            if (el && window.renderMathInElement) {
-                window.renderMathInElement(el, {
-                    delimiters: [
-                        { left: "$$", right: "$$", display: true },
-                        { left: "$", right: "$", display: false },
-                    ],
-                    throwOnError: false,
-                    ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code"],
-                })
-            }
-        },
-
         open(line) {
             let p = window.FILE_PATH.replace(/\\\\/g, "/")
             if (/^[A-Za-z]:/.test(p)) p = "/" + p[0].toLowerCase() + p.slice(1)
@@ -85,9 +71,6 @@ function node(item, root) {
         collapsed: false,
         get kids() {
             return item.children.filter(c => c.effective_level >= root.minLevel)
-        },
-        get md() {
-            return marked.parse(item.comment, { breaks: false, gfm: true })
         },
         get caretHtml() {
             if (!this.kids.length) return ""
@@ -109,7 +92,6 @@ function node(item, root) {
         init() {
             this.$el.innerHTML = document.getElementById("node-template").innerHTML
             Alpine.initTree(this.$el)
-            this.$nextTick(() => root.renderMath(this.$el))
 
             // Global collapse-all listener
             this.$root.addEventListener("set-collapsed", e => {
